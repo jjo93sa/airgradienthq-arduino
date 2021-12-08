@@ -47,28 +47,22 @@ AirGradient ag = AirGradient();
 SSD1306Wire display(0x3c, SDA, SCL);
 
 // set sensors that you do not use to false
-boolean hasPM = true;
-boolean hasCO2 = true;
-boolean hasSHT = true;
-
-// set to true to switch PM2.5 from ug/m3 to US AQI
-boolean inUSaqi = false;
-
-// set to true to switch from Celcius to Fahrenheit
-boolean inF = false;
+boolean hasPM=true;
+boolean hasCO2=true;
+boolean hasSHT=true;
 
 // set to true if you want to connect to wifi. The display will show values only when the sensor has wifi connection
-boolean connectWIFI = false;
+boolean connectWIFI=false;
 
 // change if you want to send the data to another server
 String APIROOT = "http://hw.airgradient.com/";
 
-void setup() {
+void setup(){
   Serial.begin(9600);
 
   display.init();
   display.flipScreenVertically();
-  showTextRectangle("Init", String(ESP.getChipId(), HEX), true);
+  showTextRectangle("Init", String(ESP.getChipId(),HEX),true);
 
   if (hasPM) ag.PMS_Init();
   if (hasCO2) ag.CO2_Init();
@@ -78,7 +72,7 @@ void setup() {
   delay(2000);
 }
 
-void loop() {
+void loop(){
 
   // create payload
 
@@ -86,56 +80,43 @@ void loop() {
 
   if (hasPM) {
     int PM2 = ag.getPM2_Raw();
-    payload = payload + "\"pm02\":" + String(PM2);
-
-    if (inUSaqi) {
-      showTextRectangle("AQI", String(PM_TO_AQI_US(PM2)), false);
-    } else {
-      showTextRectangle("PM2", String(PM2), false);
-    }
-
+    payload=payload+"\"pm02\":" + String(PM2);
+    showTextRectangle("PM2",String(PM2),false);
     delay(3000);
-
   }
 
   if (hasCO2) {
-    if (hasPM) payload = payload + ",";
+    if (hasPM) payload=payload+",";
     int CO2 = ag.getCO2_Raw();
-    payload = payload + "\"rco2\":" + String(CO2);
-    showTextRectangle("CO2", String(CO2), false);
+    payload=payload+"\"rco2\":" + String(CO2);
+    showTextRectangle("CO2",String(CO2),false);
     delay(3000);
   }
 
   if (hasSHT) {
-    if (hasCO2 || hasPM) payload = payload + ",";
+    if (hasCO2 || hasPM) payload=payload+",";
     TMP_RH result = ag.periodicFetchData();
-    payload = payload + "\"atmp\":" + String(result.t) + ",\"rhum\":" + String(result.rh);
-
-    if (inF) {
-      showTextRectangle(String((result.t * 9 / 5) + 32), String(result.rh) + "%", false);
-    } else {
-      showTextRectangle(String(result.t), String(result.rh) + "%", false);
-    }
-
+    payload=payload+"\"atmp\":" + String(result.t) +   ",\"rhum\":" + String(result.rh);
+    showTextRectangle(String(result.t),String(result.rh)+"%",false);
     delay(3000);
   }
 
-  payload = payload + "}";
+   payload=payload+"}";
 
   // send payload
-  if (connectWIFI) {
-    Serial.println(payload);
-    String POSTURL = APIROOT + "sensors/airgradient:" + String(ESP.getChipId(), HEX) + "/measures";
-    Serial.println(POSTURL);
-    WiFiClient client;
-    HTTPClient http;
-    http.begin(client, POSTURL);
-    http.addHeader("content-type", "application/json");
-    int httpCode = http.POST(payload);
-    String response = http.getString();
-    Serial.println(httpCode);
-    Serial.println(response);
-    http.end();
+  if (connectWIFI){
+  Serial.println(payload);
+  String POSTURL = APIROOT + "sensors/airgradient:" + String(ESP.getChipId(),HEX) + "/measures";
+  Serial.println(POSTURL);
+  WiFiClient client;
+  HTTPClient http;
+  http.begin(client, POSTURL);
+  http.addHeader("content-type", "application/json");
+  int httpCode = http.POST(payload);
+  String response = http.getString();
+  Serial.println(httpCode);
+  Serial.println(response);
+  http.end();
   }
 }
 
@@ -154,28 +135,16 @@ void showTextRectangle(String ln1, String ln2, boolean small) {
 }
 
 // Wifi Manager
-void connectToWifi() {
+void connectToWifi(){
   WiFiManager wifiManager;
   //WiFi.disconnect(); //to delete previous saved hotspot
-  String HOTSPOT = "AIRGRADIENT-" + String(ESP.getChipId(), HEX);
+  String HOTSPOT = "AIRGRADIENT-"+String(ESP.getChipId(),HEX);
   wifiManager.setTimeout(120);
-  if (!wifiManager.autoConnect((const char * ) HOTSPOT.c_str())) {
-    Serial.println("failed to connect and hit timeout");
-    delay(3000);
-    ESP.restart();
-    delay(5000);
+  if(!wifiManager.autoConnect((const char*)HOTSPOT.c_str())) {
+      Serial.println("failed to connect and hit timeout");
+      delay(3000);
+      ESP.restart();
+      delay(5000);
   }
 
 }
-
-// Calculate PM2.5 US AQI
-int PM_TO_AQI_US(int pm02) {
-  if (pm02 <= 12.0) return ((50 - 0) / (12.0 - .0) * (pm02 - .0) + 0);
-  else if (pm02 <= 35.4) return ((100 - 50) / (35.4 - 12.0) * (pm02 - 12.0) + 50);
-  else if (pm02 <= 55.4) return ((150 - 100) / (55.4 - 35.4) * (pm02 - 35.4) + 100);
-  else if (pm02 <= 150.4) return ((200 - 150) / (150.4 - 55.4) * (pm02 - 55.4) + 150);
-  else if (pm02 <= 250.4) return ((300 - 200) / (250.4 - 150.4) * (pm02 - 150.4) + 200);
-  else if (pm02 <= 350.4) return ((400 - 300) / (350.4 - 250.4) * (pm02 - 250.4) + 300);
-  else if (pm02 <= 500.4) return ((500 - 400) / (500.4 - 350.4) * (pm02 - 350.4) + 400);
-  else return 500;
-};

@@ -29,17 +29,10 @@ void setup(){
 }
 
 void loop(){
-
   TMP_RH result = ag.periodicFetchData();
-
-  Serial.print("Relative Humidity in %: ");
-  Serial.println(result.rh);
-
-  Serial.print(" Temperature in Celcius: ");
-  Serial.println(result.t);
-
-  Serial.print(" Temperature in Fahrenheit: ");
-  Serial.println((result.t * 9 / 5) + 32);
-
+  Serial.print("Humidity: ");
+  Serial.print(result.rh_char);
+  Serial.print(" Temperature: ");
+  Serial.println(result.t_char);
   delay(5000);
 }
